@@ -1,0 +1,417 @@
+---
+title: "Descriptive Statistics"
+author: "Gabriel and David"
+date: "2024-11-30"
+output: html_document
+---
+## Biostatistics Clinic 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Importing Data
+A data scientist will rarely have such luck and will have to import data into R from either a file, a database, or some other source. To do this, you’ll need to have your data correctly formatted and saved in a file format that R is able to recognise. Fortunately for us, R is able to recognise a wide variety of file formats, although in reality you’ll probably end up only using two or three regularly.
+
+We will briefly describe the key approach and function, in case you want to use your new knowledge on one of your own datasets.
+
+#### Paths and the Working Directory
+
+The first step is to find the file containing your data and know its *path*. When you are working in R it is useful to know your _working directory_. This is the folder in which R will save or look for files by default. You can see your working directory by typing:
+
+```{r, eval=FALSE}
+getwd()
+```
+You can also change your working directory using the function `setwd`. Or you can change it through RStudio by clicking on "Session".
+
+#### Import functions
+Once you’ve saved your data file in a suitable format we can now read this file into R. The workhorse function for importing data into R is the `read.table()` function (we discuss some alternatives later in the chapter). The `read.table()` function is a very flexible function with a shed load of arguments (see `?read.table`) but it’s quite simple to use. Let’s import a *tab delimited* file called `children_data.txt` which contains the data on hours of TV watch per week. 
+The file is located in a `R Bootcamp2024` directory which itself is located in our *root directory*. The first row of the data contains the variable (column) names. To use the `read.table()` function to import this file
+
+We have included the children_data in a TxT and CSV files as example datasets in our working directory.
+
+```{r}
+children_data <- read.table(file = 'children_data.txt', header = TRUE, sep = "\t",
+                        stringsAsFactors = TRUE)
+```
+
+```{r}
+str(children_data)
+```
+
+
+There are a few things to note about the above command. First, the *file path* and the *filename* (including the *file extension*) needs to be enclosed in either single or double quotes (i.e. the `children_data.txt` bit) as the `read.table()` function expects this to be a *character string*. If your working directory is already set to the directory which contains the file, you don’t need to include the entire file path just the *filename* as in our case. In the example above, the file path was not included but if the data is not stored in the working directory then the *entire file path* is separated with a single forward slash `/`. This will work regardless of the operating system you are using and we recommend you stick with this. 
+
+However, Windows users may be more familiar with the single backslash notation and if you want to keep using this you will need to include them as double backslashes. Note though that the double backslash notation will not work on computers using Mac OSX or Linux operating systems.
+
+```{r}
+children_data2 <- read.table(file = 'children_data.txt', 
+                      header = TRUE, sep = "\t", stringsAsFactors = TRUE)
+```
+
+The `header = TRUE` argument specifies that the first row of your data contains the variable names (i.e. "age", "gender",  etc). If this is not the case you can specify `header = FALSE` (actually, this is the default value so you can omit this argument entirely). The `sep = "\t"` argument tells R that the file delimiter is a `tab (\t)`.
+
+We can use the `str()` function to return a compact and informative summary of your data frame.
+```{r}
+str(children_data)
+```
+Notice also that the *character string* variables ("age", "gender", "location" and "income") have been imported as factors because we used the argument `stringsAsFactors = TRUE`. If this is not what you want you can prevent this by using the `stringsAsFactors = FALSE` or from R version 4.0.0 you can just leave out this argument as `stringsAsFactors = FALSE` is the default.
+```{r}
+children_data3 <- read.table(file = 'children_data.txt', header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+```
+
+```{r}
+str(children_data3)
+```
+If we just wanted to see the names of our variables (columns) in the data frame we can use the `names()` function which will return a character vector of the variable names.
+```{r}
+names(children_data)
+```
+
+`R` has a number of variants of the `read.table()` function that you can use to import a variety of file formats. The most useful of these are the `read.csv()`, `read.csv2()` and `read.delim()` functions. The `read.csv()` function is used to import comma separated value `(.csv)` files and assumes that the data in columns are separated by a comma (it sets `sep = ","` by default). It also assumes that the first row of the data contains the *variable names* by default (it sets `header = TRUE` by default). The `read.csv2()` function assumes data are separated by semicolons and that a comma is used instead of a decimal point (as in many European countries). The `read.delim()` function is used to import `tab delimited` data and also assumes that the first row of the data contains the *variable names* by default.
+
+```{r}
+# import .csv file
+child_data1 <- read.csv(file = 'children_data.csv') 
+
+# import .csv file with dec = "," and sep = ";"
+child_data2 <- read.csv2(file = 'children_data.csv')
+
+#correct by introducing sep = ","
+child_data22 <- read.csv2(file = 'children_data.csv', sep = ",")
+
+# import tab delim file with sep = "\t"
+child_data3 <- read.delim(file = 'children_data.txt') 
+```
+
+If you want your variables to be factors (categorical) instead, you can use the argument `stringsAsFactors = TRUE`:
+
+```{r}
+child_data1 <- read.csv("children_data.csv", stringsAsFactors = TRUE)
+str(child_data1)
+#child<-read.csv(file.choose())
+```
+### Other import options
+There are numerous other functions to import data from a variety of sources and formats. Most of these functions are contained in packages that you will need to install before using them. We list a couple of the more useful packages and functions below.
+
+Various functions from the `readr` package are also very efficient at reading in large data files. The `readr` package is part of the `tidyverse` collection of packages and provides many equivalent functions to base R for importing data. The `readr` functions are used in a similar way to the `read.table()` or `read.csv()` functions and many of the arguments are the same (see `?readr::read_table` for more details). There are however some differences. For example, when using the `read_table()` function the `header = TRUE` argument is replaced by `col_names = TRUE` and the function returns a tibble class object which is the `tidyverse` equivalent of a `data.frame` object.
+
+```{r, error=TRUE, message=FALSE}
+library(readr)
+# import white space delimited files
+all_data1 <- read_table(file = 'children_data.txt', col_names = TRUE)
+
+# import comma delimited files
+all_data2 <- read_csv(file = 'children_data.csv')
+
+# import tab delimited files
+all_data3 <- read_delim(file = 'children_data.txt', delim = "\t")
+
+# or use
+all_data4 <- read_tsv(file = 'children_data.txt' )
+```
+
+###Computing summary statistics
+Computing summary statistics in R involves using various functions to calculate key measures that describe the central tendency, dispersion, and distribution of your data.
+
+#### Key Functions:
+
+1. `summary()`: Provides a concise overview of the data, including minimum, 1st quartile, median, mean, 3rd quartile, and maximum values.
+2. `mean()`: Calculates the average value of a numeric vector.
+3. `median()`: Finds the middle value in a sorted numeric vector.
+4. `min()` and `max()`: Determine the smallest and largest values, respectively.
+5. `sd()`: Computes the standard deviation, a measure of data dispersion.
+6. `var()`: Calculates the variance, another measure of data dispersion.
+7. `quantile()`: Returns specific quantiles (e.g., quartiles, percentiles) of the data.
+8. `IQR()`: Calculates the interquartile range, a measure of variability.
+
+To perform the above functions, we will use the dataset named _health_data_. Let read the _health_data.csv_ into our rstudio. 
+```{r}
+health_data<-read.csv("health_data.csv")
+head(health_data)
+```
+```{r}
+summary(health_data)
+```
+ 
+```{r}
+mean(health_data$age)
+mean(health_data$BMI)
+```
+```{r}
+median(health_data$age)
+median(health_data$BMI)
+```
+```{r}
+min(health_data$age)
+max(health_data$age)
+```
+```{r}
+sd(health_data$age)
+var(health_data$age)
+```
+```{r}
+quantile(health_data$age)
+```
+```{r}
+IQR(health_data$age)
+```
+### Data Wrangling
+The term **data wrangling** refers to the processes of *transforming* or *manipulating* raw data into a useful format for downstream analysis and visualization.
+
+Wrangling is an important part of data science, because data rarely comes in precisely the form that suits some particular analysis. For example, you might want to focus only on specific rows or columns of your data, or calculate summary statistics only for specific subgroups. Maybe you want to create a new variable derived from existing ones. Or else you just want to sort the rows according to some variable, to make a table a little easier to read. All of these tasks involve wrangling your data.
+
+
+The `tidyverse` and `dplyr` libraries, come equipped with several handy data verbs that streamline these wrangling tasks. In this session, you’ll learn to:
+
+* use six key data verbs (summarize, group_by, mutate, filter, select, and arrange) to transform your data into a more convenient form.
+* calculate complex summary statistics for arbitrary subsets of your data and combinations of variables.
+
+Let's, create a code chunk, and then load the `tidyverse`, `dplyr`, and `dslabs` libraries.
+
+```{r}
+# install.packages("tidyverse", "dplyr", "dslabs") # This line of code will allow you to install these packages
+library(tidyverse)
+library(dplyr)
+library(dslabs)
+data(murders)
+```
+
+This packages introduce functions that perform the most common operations in data wrangling and uses names for these functions that are relatively easy to remember. For example, to change the data table by adding a new column, we use `mutate`. To filter the data table to a subset of rows we use `filter` and to subset the data by selecting specific columns we use `select`. We can also perform a series of operations. For example, select and then filter, by sending the results of one function to another using what is called the _pipe operator_: `%>%`. Some details are included below.
+
+Before we start wrangling let's look at our data using the command `head()`.
+
+```{r}
+head(murders)
+```
+### Adding a column with `mutate`
+We want all the necessary information for our analysis to be included in the data table. So the first task is to add the murder rate to our data frame. The function mutate takes the data frame as a first argument and the name and values of the variable in the second using the convention `name = values`. So to add murder rate we use:
+
+```{r,message=FALSE}
+murders <- mutate(murders, murder_rate = total / population * 100000)
+```
+
+Note that here we used `total` and `population` in the function, which are objects that are **not** defined in our workspace. What is happening is that `mutate` knows to look for these variables in the `murders` data frame because the first argument we put was the `murders` data frame. We can see the new column is added:
+
+```{r}
+head(murders)
+```
+
+Also note that we have over-written the original `murders` object. However, this does *not* change the object that is saved and loaded with `data(murders)`. If we load the `murders` data again, the original will over-write our mutated version.
+
+### Subsetting with `filter`
+
+Now suppose that we want to filter the data table to only show the entries for which the murder rate is lower than 0.71. To do this we use the `filter` function which takes the data table as an argument and then the conditional statement as the next argument. Like mutate, we can use the data table variable names inside the function and it will know we mean the columns and not objects in the workspace.
+
+```{r}
+filter(murders, murder_rate <= 0.71)
+```
+
+### Selecting columns with `select`
+
+Although our data table only has six columns, some data tables include hundreds. If we want to view just a few, we can use the `select` function. In the code below we select three columns, assign this to a new object and then filter the new object: 
+
+```{r}
+new_table <- select(murders, state, region, murder_rate)
+filter(new_table, murder_rate <= 0.71)
+```
+
+### The pipe: `%>%`
+
+In the code above we wanted to show the three variables for states that have murder rates below 0.71. To do this we defined an intermediate object. In `dplyr` we can write code that looks more like our description of what we want to:
+
+>> original data $\rightarrow$ select $\rightarrow$ filter
+
+For such an operation, we can use the pipe `%>%`. The code looks like this:
+
+```{r}
+murders %>% select(state, region, murder_rate) %>% filter(murder_rate <= 0.71)
+```
+
+### Summarizing data with `dplyr`
+
+An important part of exploratory data analysis is summarizing data. It is sometimes useful to split data into groups before summarizing. 
+
+### Summarize
+
+The `summarize` function in `dplyr` provides a way to compute summary statistics with intuitive and readable code. We can compute the average of the murder rates like this.
+
+
+```{r}
+murders %>% summarize(avg = mean(murder_rate))
+```
+
+However, note that the US murder rate is **not** the average of the state murder rates. Because in this computation the small states are given the same weight as the large ones. The US murder rate is proportional to the total US murders divided by the total US population.
+
+To compute the country's average murder rate using the `summarize` function, we can do the following: 
+
+```{r}
+us_murder_rate <- murders %>% 
+  summarize(murder_rate = sum(total) / sum(population) * 100000)
+
+us_murder_rate
+```
+
+### Using the dot to access the piped data 
+
+The `us_murder_rate` object defined above represents just one number. Yet we are storing it in a data frame
+
+```{r}
+class(us_murder_rate)
+```
+
+since, as with most `dplyr` functions, `summarize` *always returns a data frame*.
+
+This might be problematic if we want to use the result with functions that require a numeric value. Here we show a useful trick to access values stored in data piped via `%>%`: when a data object is piped it can be accessed using the dot `.`. To understand what we mean take a look at this line of code:
+
+```{r}
+us_murder_rate %>% .$murder_rate
+```
+
+Note that this returns the value in the `murder_rate` column of `us_murder_rate` making it equivalent to `us_murder_rate$murder_rate`. To understand this line, you just need to think of `.` as a placeholder for the data that is being passed through the pipe. Because this data object is a data frame, we can access it's columns with the `$`. 
+
+To get a number from the original data table with one line of code we can type:
+
+```{r}
+us_murder_rate <- murders %>% 
+  summarize( murder_rate = sum(total) / sum(population) * 100000) %>%
+  .$murder_rate
+
+us_murder_rate
+```
+which is now a numeric:
+
+```{r}
+class(us_murder_rate)
+```
+### Group then summarize
+
+A common operation in data exploration is to first split data into groups and then compute summaries for each group. For example, we may want to compute the median murder rate for each region. The `group_by` function helps us do this. 
+
+If we type this:
+
+```{r}
+murders %>% 
+  group_by(region) %>%
+  summarize(median_rate = median(murder_rate))
+```
+
+we get a table with the median murde rate for each of the four regions.
+
+### Sorting data tables
+
+When examining a dataset it is often convenient to sort the table by the different columns. We know about the `order` and `sort` functions, but for ordering entire tables, the `dplyr` function `arrange` is useful. For example, here we order the states by population size:
+
+```{r}
+murders %>% 
+  arrange(population) %>% 
+  head()
+```
+
+Note that we get to decide which column to sort by. To see the states by murder rate, from smallest to largest, we arrange by `murder_rate` instead:
+
+```{r}
+murders %>% 
+  arrange(murder_rate) %>% 
+  head()
+```
+
+Note that the default behavior is to order in ascending order. In `dplyr`, the function `desc` transforms a vector to be in descending order. So if we want to sort the table in descending order we can type
+
+```{r}
+murders %>% 
+  arrange(desc(murder_rate)) %>% 
+  head()
+```
+
+#### Nested Sorting
+
+If we are ordering by a column with ties we can use a second column to break the tie. Similarly, a third column can be used to break ties between the first and second and so on. Here we order by `region` then within region we order by murder rate:
+
+```{r}
+murders %>% 
+  arrange(region, murder_rate) %>% 
+  head()
+```
+
+
+#### Rename
+
+Renaming a variable in a data frame in R is surprisingly hard to do! The `rename()` function is designed to make this process easier.
+
+Here you can see the names of the variables in the `murders` data frame.
+```{r}
+names(murders)
+```
+
+Let's assume that we want to rename the `abb` column to `abbreviation`, here is how we can do it
+
+```{r}
+murders <- murders %>% rename(abbreviation = abb)
+names(murders)
+```
+
+The syntax inside the `rename()` function is to have the new name on the left-hand side of the `=` sign and the old name on the right-hand side.
+
+Let return back to our *health_data* and calculate some descriptive statistics using the `dplyr` functions.
+
+```{r}
+stats<-health_data%>%group_by(sex)%>%
+  summarise(mean_age=mean(age), mean_bmi=mean(BMI), mean_heart.rate=mean(heart_rate),sd_age=sd(age), sd_bmi=sd(BMI), sd_heart.rate=sd(heart_rate) )
+stats
+```
+
+```{r}
+stats<-health_data%>%group_by(sex)%>%
+  summarise(mean_age=mean(age), mean_bmi=mean(BMI), mean_heart.rate=mean(heart_rate),sd_age=sd(age), sd_bmi=sd(BMI), sd_heart.rate=sd(heart_rate) )%>%.$mean_age
+
+stats
+```
+
+## Basic plots
+
+Exploratory data visualization is perhaps the strength of R. One can quickly go from idea to data to plot with a unique balance of flexibility and ease. For example, Excel may be easier than R but it is no where near as flexible. D3 may be more flexible and powerful than R, but it takes much longer to generate a plot. The next section is dedicated to this topic, but here we introduce some very basic plotting functions.
+
+### Scatter plots
+
+Let explore the relationship between _age_ and _heart_rate_ for persons who are at least 25 years old from our *health_data*.We will use an exploratory visualization that plots these two quantities against each other:
+
+
+```{r, first-plot}
+health_sub<-health_data%>%filter(age>25)
+age25<-health_sub$age
+cholesterol25<-health_sub$cholesterol
+bmi25<-health_sub$BMI
+plot(age25, cholesterol25)
+```
+
+Can see any relationship?
+
+**Advanced**: For a quick plot that avoids accessing variables twice, we can use the `with` function
+
+```{r, eval=FALSE}
+with(health_sub, plot(age, cholesterol))
+```
+
+
+### Histograms
+
+We will describe histograms as they relate to distributions in the next section. Here we will simply note that histograms are a powerful graphical summary of a list of numbers that gives you a general overview of the types of values you have. We can make a histogram of our _Exercise score_ by simply typing
+
+```{r, warning=FALSE, message=FALSE}
+
+hist(health_data$exercise_score_hrs)
+```
+
+
+### Boxplot
+
+Boxplots provide a more terse summary than the histogram - but they are easier to stack with other boxplots. Here we can use them to compare the different groups.
+
+```{r}
+boxplot(exercise_score_hrs~ sex, data = health_sub)
+```
+
+We can see that the both sexes have the same distribution of the number of hours exercise per week.
+
+    
