@@ -1,0 +1,368 @@
+---
+title: "Hypothesis Testing"
+author: "Gabriel and David"
+date: "2024-12-01"
+output: html_document
+---
+## Biostatistics Clinic 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Hypothesis Testing with Behavioral Risk Factor Surveillance System data
+As example data (*2020-brfss-survey-responses.csv*), this tutorial will use a table of anonymized individual responses from the CDC's Behavioral Risk Factor Surveillance System. The BRFSS is a "system of health-related telephone surveys that collect state data about U.S. residents regarding their health-related risk behaviors, chronic health conditions, and use of preventive services" (CDC, 2019).
+
+Guidance on how to download and process this data directly from the CDC website
+[CDC website](https://www.cdc.gov/brfss/annual_data/annual_2020.html)
+
+*Import 2020-brfss-survey-responses.csv Data, *
+```{r}
+brfss2020<-read.csv("2020-brfss-survey-responses.csv")
+```
+
+Let explored the data
+```{r}
+str(brfss2020)
+```
+
+## Comparing Two Central Tendencies: Tests with Continuous / Discrete Data
+### One Sample T-Test (Two-Sided)
+The one-sample t-test tests the significance of the difference between the mean of a sample and an expected mean.
+
+* Data: A continuous or discrete sampled variable and a single expected mean (μ)
+* Parametric (normal distributions)
+* R Function: t.test()
+* Null hypothesis (H0): The means of the sampled distribution matches the expected mean.
+
+We want to test the hypothesis that the mean weight in _IL (Illinois) state_ in 2020 is different than the 2005 continental mean weight.
+
+Walpole et al. (2012) estimated that the average adult weight in North America in 2005 was 178 pounds. We could presume that Illinois is a comparatively normal North American state that would follow the trend of both increased age and increased weight (CDC 2021).
+
+```{r}
+weight.illinois <-brfss2020[brfss2020$WEIGHT2 %in% 50:776, ]
+
+weight.illinois <- weight.illinois[weight.illinois$ST %in% "IL", ]
+
+plot(density(weight.illinois$WEIGHT2), col="navy", lwd=3)
+
+abline(v = 178, col="red", lwd=3)
+```
+Density plot of 2020 weight in Illinois vs. 2005 estimated North American mean.
+
+We then performed the one sample t-test using `t.test()` function  from r base function. 
+```{r}
+weight.test = t.test(weight.illinois$WEIGHT2, mu=178)
+
+print(weight.test)
+```
+
+### One Sample T-Test (One-Sided)
+Because we were expecting an increase, we can modify our hypothesis that the mean weight in 2020 is higher than the continental weight in 2005. We can perform a one-sided t-test using the _alternative="greater"_ parameter.
+
+```{r}
+weight.test = t.test(weight.illinois$WEIGHT2, mu=178, alternative="greater")
+
+print(weight.test)
+```
+
+The low p-value leads us to again reject the null hypothesis and corroborate our alternative hypothesis that mean weight in 2020 is higher than the continental weight in 2005.
+
+Note that this does not clearly evaluate whether weight increased specifically in Illinois, or, if it did, whether that was caused by an aging population or decreasingly healthy diets. Hypotheses based on such questions would require more detailed analysis of individual data.
+
+### Two-Sample T-Test
+When comparing means of values from two different groups in your sample, a two-sample t-test is in order.
+
+The two-sample t-test tests the significance of the difference between the means of two different samples.
+
+1. Data:
+  * Two normally-distributed, continuous or discrete sampled variables, OR
+  * A normally-distributed continuous or sampled variable and a parallel dichotomous variable indicating what group each of the values in the first variable belong to
+
+2. Parametric (normal distributions)
+
+3. R Function: t.test()
+
+
+4. Null hypothesis (H0): The means of the two sampled distributions are equal.
+
+For example, given the low incomes and delicious foods prevalent in Mississippi, we might presume that average weight in *Mississippi* would be higher than in *Illinois*.
+
+```{r}
+weight <- brfss2020[brfss2020$WEIGHT2 %in% 50:776,]
+
+weight.illinois <- weight[weight$ST %in% "IL",]
+
+weight.mississippi <- weight[weight$ST %in% "MS",]
+
+plot(density(weight.illinois$WEIGHT2), col="navy", lwd=3)
+
+lines(density(weight.mississippi$WEIGHT2), col="red", lwd=3)
+
+legend("topright", legend=c("Illinois", "Mississippi"), col=c("navy", "red"), lwd=3)
+```
+Density plots for weight in Mississippi (red) vs. Illinois (blue).
+
+We test a hypothesis that the mean weight in Illinois in 2020 is less than the 2020 mean weight in Mississippi.
+
+```{r}
+weight.test = t.test(weight.illinois$WEIGHT2, weight.mississippi$WEIGHT2, 
+	alternative="less")
+
+print(weight.test)
+```
+The low p-value leads us to reject the null hypothesis and corroborate our alternative hypothesis that mean weight in Illinois is less than in Mississippi.
+
+### Wilcoxen Rank Sum Test (Mann-Whitney U-Test)
+The Wilcoxen rank sum test tests the significance of the difference between the means of two different samples. This is a non-parametric alternative to the t-test.
+
+1. Data: Two continuous sampled variables
+2. Non-parametric (normal or non-normal distributions)
+3. R Function: wilcox.test()
+4. Null hypothesis (H0): For randomly selected values X and Y from two populations, the probability of X being greater than Y is equal to the probability of Y being greater than X.
+
+When the test is performed on one sample in comparison to an expected value around which the distribution is symmetrical (μ), the test is known as a *Mann-Whitney U test*.
+
+When the test is performed to compare two samples, the test is known as a *Wilcoxon rank sum test*.
+
+For this example, we will use `AVEDRNK3`: During the past 30 days, on the days when you drank, about how many drinks did you drink on the average?
+
+* 1 - 76: Number of drinks
+* 88: None
+* 77: Don’t know/Not sure
+* 99: Refused
+* NA: Not asked or Missing
+
+The histogram clearly shows this to be a non-normal distribution.
+
+```{r}
+drinking <- brfss2020[brfss2020$AVEDRNK3 %in% 1:88, ]
+
+drinking$AVEDRNK3[drinking$AVEDRNK3 == 88] <- 0
+
+hist(drinking$AVEDRNK3)
+```
+Continuing the comparison of Illinois and Mississippi from above, we might presume that with all that warm weather and excellent food in Mississippi, they might be inclined to drink more. 
+```{r}
+drinking.illlinois <- drinking[drinking$ST %in% "IL",]
+
+drinking.mississippi <- drinking[drinking$ST %in% "MS",]
+
+print(mean(drinking.illlinois$AVEDRNK3))
+
+print(mean(drinking.mississippi$AVEDRNK3))
+```
+The means of average number of drinks per month seem to suggest that Mississippians do drink more than Illinoians.
+
+We can use `wilcox.test()` to test a hypothesis that the average amount of drinking in Illinois is different than in Mississippi. Like the t-test, the alternative can be specified as two-sided or one-sided, and for this example we will test whether the sampled Illinois value is indeed less than the Mississippi value.
+
+```{r}
+drinking.test = wilcox.test(drinking.illlinois$AVEDRNK3, drinking.mississippi$AVEDRNK3, 
+	alternative="less")
+
+print(drinking.test)
+```
+
+The low p-value leads us to reject the null hypothesis and corroborates our hypothesis that average drinking is lower in Illinois than in Mississippi. As before, this tells us nothing about why this is the case.
+
+### Weighted Two-Sample T-Test
+The downloadable BRFSS data is raw, anonymized survey data that is biased by uneven geographic coverage of survey administration (noncoverage) and lack of responsiveness from some segments of the population (nonresponse). The X_LLCPWT field (landline, cellphone weighting) is a weighting factor added by the CDC that can be assigned to each response to compensate for these biases.
+
+The `wtd.t.test()` function from the _weights_ library has a weights parameter that can be used to include a weighting factor as part of the `t-test`.
+
+```{r}
+library(weights)
+
+drinking = brfss2020[brfss2020$AVEDRNK3 %in% 1:88, ]
+
+drinking$AVEDRNK3[drinking$AVEDRNK3 == 88] = 0
+
+drinking.illinois = drinking[drinking$ST %in% "IL",]
+
+drinking.mississippi = drinking[drinking$ST %in% "MS",]
+
+drinking.test = wtd.t.test(x = drinking.illinois$AVEDRNK3, 
+	y = drinking.mississippi$AVEDRNK3,
+	weight=drinking.illinois$X_LLCPWT, 
+	weighty = drinking.mississippi$X_LLCPWT)
+
+print(drinking.test)
+```
+
+## Comparing Proportions: Tests with Categorical Data
+
+### Chi-Squared Goodness of Fit
+Tests the significance of the difference between sampled frequencies of different values and expected frequencies of those values
+
+* Data: A categorical sampled variable and a table of expected frequencies for each of the categories
+* R Function: `chisq.test()`
+* Null hypothesis (H0): The relative proportions of categories in one variable are different from the expected proportions
+
+For example, we want to test a hypothesis that smoking rates changed between 2000 and 2020.
+
+In 2000, the estimated rate of adult smoking in Illinois was 22.3% (Illinois Department of Public Health 2004).
+
+The variable we will use is *SMOKDAY2*: Do you now smoke cigarettes every day, some days, or not at all?
+
+* 1: Current smoker - now smokes every day
+* 2: Current smoker - now smokes some days
+* 3: Not at all
+* 7: Don't know
+* 9: Refused
+* NA: Not asked or missing - NA is used for people who have never smoked
+
+We will subset only yes/no responses in Illinois and convert into a dummy variable (yes = 1, no = 0).
+
+```{r}
+smoking <- brfss2020
+
+smoking$SMOKDAY2 = ifelse(smoking$SMOKDAY2 %in% 1:2, 1, 0)
+
+smoking.illinois = table(smoking[smoking$ST %in% "IL", "SMOKDAY2"])
+
+print(smoking.illinois * 100 / sum(smoking.illinois))
+```
+The listing of the table as percentages indicates that smoking rates were halved between 2000 and 2020, but since this is sampled data, we need to run a chi-squared test to make sure the difference can't be explained by the randomness of sampling.
+
+```{r}
+smoking.test = chisq.test(smoking.illinois, p=c(0.777, 0.223))
+
+print(smoking.test)
+```
+In this case, the very low p-value leads us to reject the null hypothesis and corroborates the alternative hypothesis that smoking rates changed between 2000 and 2020.
+
+### Chi-Squared Contingency Analysis / Test of Independence
+Tests the significance of the difference between frequencies between two different groups
+
+* Data: Two categorical sampled variables
+* R Function: `chisq.test()`
+* Null hypothesis (H0): The relative proportions of one variable are independent of the second variable.
+
+We can also compare categorical proportions between two sets of sampled categorical variables.
+
+The *chi-squared test* is used to determine if two categorical variables are independent. What is passed as the parameter is a contingency table created with the `table()` function that cross-classifies the number of rows that are in the categories specified by the two categorical variables.
+
+The null hypothesis with this test is that the two categories are independent. The alternative hypothesis is that there is some dependency between the two categories.
+
+For this example, we can compare the three categories of smokers (daily = 1, occasionally = 2, never = 3) across the two categories of states (Illinois and Mississippi).
+
+```{r}
+smoking <- brfss2020[brfss2020$SMOKDAY2 %in% c(1,2,3,NA),]
+
+smoking$SMOKDAY2[is.na(smoking$SMOKDAY2)] <- 3
+
+smoking.table = table(smoking[smoking$ST %in% c("IL", "MS"), c("ST", "SMOKDAY2")])
+
+print(smoking.table)
+
+```
+
+```{r}
+plot(smoking.table)
+```
+Plot of the contingency table comparing smoking responses between IL and MS.
+
+```{r}
+smoking.test = chisq.test(smoking.table)
+
+print(smoking.test)
+```
+The low p-value leads us to reject the null hypothesis that the categories are independent and corroborates our hypothesis that smoking behaviors in the two states are indeed different.
+
+### Weighted Chi-Squared Contingency Analysis
+As with the weighted t-test above, the weights library contains the `wtd.chi.sq()` function for incorporating weighting into chi-squared contingency analysis. 
+
+we will use the variable *X_LLCPWT* as the weights for the test.
+
+```{r}
+library(weights)
+
+smoking <- brfss2020[brfss2020$SMOKDAY2 %in% c(1,2,3,NA),]
+
+smoking$SMOKDAY2[is.na(smoking$SMOKDAY2)] <- 3
+
+smoking <- smoking[smoking$ST %in% c("IL", "MS"),]
+
+smoking.test <- wtd.chi.sq(var1 = smoking$ST, var2 = smoking$SMOKDAY2, 
+	weight = smoking$X_LLCPWT)
+
+print(smoking.test)
+```
+
+As above, the even lower p-value leads us to again reject the null hypothesis that smoking behaviors are independent in the two states.
+
+## Comparing Categorical and Continuous Variables
+### Analysis of Variation (ANOVA)
+Analysis of Variance (ANOVA) is a test that you can use when you have a categorical variable and a continuous variable. It is a test that considers variability between means for different categories as well as the variability of observations within groups.
+
+* Data: One or more categorical (independent) variables and one continuous (dependent) sampled variable
+* Parametric (normal distributions)
+* R Function: `aov()`
+* Null hypothesis (H0): There is no difference in means of the groups defined by each level of the categorical (independent) variable
+
+As an example, we look at the continuous weight variable (WEIGHT2) split into groups by the eight income categories in INCOME2: Is your annual household income from all sources?
+
+* 1: Less than $10,000
+* 2: $10,000 to less than $15,000
+* 3: $15,000 to less than $20,000
+* 4: $20,000 to less than $25,000
+* 5: $25,000 to less than $35,000
+* 6: $35,000 to less than $50,000
+* 7: $50,000 to less than $75,000)
+* 8: $75,000 or more
+* 77: Don’t know/Not sure
+* 99: Refused
+* NA: Not asked or Missing
+
+The `barplot()` of means does show variation among groups, although there is no clear linear relationship between income and weight.
+*Mean weight by income category in Illinois*
+```{r}
+weight.illinois <- brfss2020[(brfss2020$WEIGHT2 %in% 50:776) & 
+		(brfss2020$INCOME2 %in% 1:8) & 
+		(brfss2020$ST %in% "IL"),]
+
+weight.list<- aggregate(weight.illinois$WEIGHT2, by=list(weight.illinois$INCOME2), FUN=mean)
+
+x <- barplot(weight.list$x, names.arg=weight.list$Group.1, las=1)
+
+text(x, 20, round(weight.list$x), cex=0.8)
+```
+To test whether this variation could be explained by randomness in the sample, we run the ANOVA test.
+
+```{r}
+model <- aov(WEIGHT2 ~ INCOME2, data = weight.illinois)
+
+summary(model)
+```
+
+
+The low p-value leads us to reject the null hypothesis that there is no difference in the means of the different groups, and corroborates the alternative hypothesis that mean weights differ based on income group.
+
+However, it gives us no clear model for describing that relationship and offers no insights into why income would affect weight, especially in such a nonlinear manner.
+
+### Kruskal-Wallis One-Way Analysis of Variance
+A somewhat simpler test is the *Kruskal-Wallis test* which is a nonparametric analogue to ANOVA for testing the significance of differences between three or more groups.
+
+* Data: One or more categorical (independent) variables and one continuous (dependent) sampled variable
+* Non-parametric (normal or non-normal distributions)
+* R Function: `kruskal.test()`    
+* Null hypothesis (H0): The samples come from the same distribution.
+
+For this example, we will investigate whether mean weight varies between the three major US urban states: New York, Illinois, and California.
+
+```{r}
+weight.urban = brfss2020[(brfss2020$WEIGHT2 %in% 50:776) &
+		(brfss2020$ST %in% c("NY","IL","CA")),]
+
+boxplot(WEIGHT2 ~ ST, data = weight.urban)
+```
+To test whether this variation could be explained by randomness in the sample, we run the Kruskal-Wallis test.
+
+```{r}
+model_kw <- kruskal.test(WEIGHT2 ~ ST, data = weight.urban)
+
+print(model_kw)
+```
+The low p-value leads us to reject the null hypothesis that the samples come from the same distribution. This corroborates the alternative hypothesis that mean weights differ based on state.
+
+
